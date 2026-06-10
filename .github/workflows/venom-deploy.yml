@@ -1,0 +1,71 @@
+name: VENOM Motherland Deployment Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Syntax Validation
+        run: |
+          python -m py_compile backend/venom_core.py
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: |
+          docker build -t venom-backend -f docker/Dockerfile.backend .
+
+      - name: Build Frontend Image
+        run: |
+          docker build -t venom-frontend -f docker/Dockerfile.frontend .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VENOM_HOST }}
+          username: ${{ secrets.VENOM_USER }}
+          key: ${{ secrets.VENOM_SSH_KEY }}
+          script: |
+            cd ~/venom-motherland
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Rebuilding containers..."
+            docker compose down
+            docker compose up -d --build
+
+            echo "VENOM MOTHERLAND DEPLOYED SUCCESSFULLY"
+VENOM_HOST      = your server IP / domain
+VENOM_USER      = ssh username (e.g. ubuntu, root)
+VENOM_SSH_KEY   = private SSH key
+  Git Push → GitHub Actions → Build → Docker → Server SSH → Restart VENOM → Live Update
