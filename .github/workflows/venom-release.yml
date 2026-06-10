@@ -1,0 +1,69 @@
+name: VENOM Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Validate System
+        run: |
+          python -m compileall backend
+          test -f frontend/index.html
+          test -f docker/docker-compose.yml
+
+  package:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Release Package
+        run: |
+          mkdir venom-release
+
+          cp -r backend venom-release/
+          cp -r frontend venom-release/
+          cp -r docker venom-release/
+          cp LICENSE venom-release/
+          cp README.md venom-release/
+          cp NOTICE venom-release/
+
+          tar -czf venom-motherland.tar.gz venom-release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: venom-motherland-release
+          path: venom-motherland.tar.gz
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: package
+
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: venom-motherland.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
