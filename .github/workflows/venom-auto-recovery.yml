@@ -1,0 +1,87 @@
+name: VENOM Auto Recovery System
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"  # runs every 10 minutes
+
+jobs:
+
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check System Status
+        run: |
+          echo "VENOM HEALTH CHECK START"
+
+          # Simulated check (replace with real endpoint later)
+          STATUS="OK"
+
+          if [ "$STATUS" != "OK" ]; then
+            echo "SYSTEM FAILURE DETECTED"
+            exit 1
+          fi
+
+          echo "SYSTEM HEALTH: OK"
+
+  restart-check:
+    runs-on: ubuntu-latest
+    needs: health-check
+
+    steps:
+      - name: Attempt Recovery
+        run: |
+          echo "Checking runtime integrity..."
+
+          # Simulated condition
+          BROKEN=false
+
+          if [ "$BROKEN" = true ]; then
+            echo "FAULT DETECTED - INITIATING RECOVERY"
+
+            docker restart venom-backend || true
+            docker restart venom-frontend || true
+
+            echo "RECOVERY ACTION COMPLETE"
+          else
+            echo "NO RECOVERY NEEDED"
+          fi
+
+  rollback-system:
+    runs-on: ubuntu-latest
+    needs: restart-check
+
+    steps:
+      - name: Rollback Check
+        run: |
+          echo "Checking last stable state..."
+
+          LAST_STABLE="v1.0.0"
+          CURRENT="v1.0.1"
+
+          if [ "$CURRENT" != "$LAST_STABLE" ]; then
+            echo "ROLLBACK TRIGGERED"
+
+            git fetch --tags
+            git checkout $LAST_STABLE
+
+            docker compose down
+            docker compose up -d --build
+
+            echo "ROLLBACK COMPLETE"
+          else
+            echo "SYSTEM STABLE - NO ROLLBACK REQUIRED"
+          fi
+
+  final-report:
+    runs-on: ubuntu-latest
+    needs: [health-check, restart-check, rollback-system]
+
+    steps:
+      - name: Recovery Report
+        run: |
+          echo "=============================="
+          echo "VENOM AUTO-RECOVERY COMPLETE"
+          echo "SYSTEM STATUS: STABLE"
+          echo "=============================="
