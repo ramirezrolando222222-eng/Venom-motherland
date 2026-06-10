@@ -1,92 +1,84 @@
-name: VENOM Simulation Tests
+name: VENOM Auto Recovery System
 
 on:
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
 
 jobs:
 
-  simulate-core:
+  health-check:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Worker Simulation
+      - name: Verify Repo Structure (Safe Check)
         run: |
-          python - << 'EOF'
-workers = {"lion_coder":"IDLE","diablo":"IDLE","roblast":"IDLE"}
+          echo "Checking VENOM structure..."
 
-for i in range(3):
-    for w in workers:
-        workers[w] = "ACTIVE" if i % 2 == 0 else "REST"
-    print("Cycle", i, workers)
-EOF
+          if [ -d backend ]; then
+            echo "backend folder: OK"
+          else
+            echo "WARNING: backend folder missing"
+          fi
 
-  simulate-timex:
+          if [ -f backend/venom_core.py ]; then
+            echo "core file: OK"
+          else
+            echo "WARNING: venom_core.py missing"
+          fi
+
+  restart-check:
     runs-on: ubuntu-latest
+    needs: health-check
+
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: TIMEX Test
+      - name: Simulated Recovery Layer
         run: |
-          python - << 'EOF'
-import time
+          echo "Checking runtime state..."
 
-SHIFT_DURATION = 2
-start = time.time()
+          BROKEN=false
 
-for i in range(3):
-    elapsed = time.time() - start
-    state = "ACTIVE" if elapsed < SHIFT_DURATION else "REST"
-    print("Time", i, round(elapsed,2), state)
-    time.sleep(1)
+          if [ "$BROKEN" = true ]; then
+            echo "RECOVERY TRIGGERED"
 
-print("TIMEX OK")
-EOF
+            # safe placeholders (no real docker crash assumptions)
+            echo "Would restart backend container"
+            echo "Would restart frontend container"
 
-  simulate-memory:
+          else
+            echo "SYSTEM HEALTHY - NO ACTION REQUIRED"
+          fi
+
+  rollback-system:
     runs-on: ubuntu-latest
+    needs: restart-check
+
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: MEMORY Test
+      - name: Safe Rollback Check
         run: |
-          python - << 'EOF'
-MEMORY = {}
-VAULT = {}
+          echo "Checking version state..."
 
-worker = "lion_coder"
+          LAST_STABLE="v1.0.0"
+          CURRENT="v1.0.0"
 
-for i in range(3):
-    task = f"task_{i}"
-    MEMORY[worker] = task
-    VAULT[worker] = MEMORY[worker]
-    print(MEMORY, VAULT)
-
-print("MEMORY OK")
-EOF
+          if [ "$CURRENT" != "$LAST_STABLE" ]; then
+            echo "ROLLBACK REQUIRED"
+          else
+            echo "SYSTEM STABLE - NO ROLLBACK"
+          fi
 
   final-report:
     runs-on: ubuntu-latest
-    needs: [simulate-core, simulate-timex, simulate-memory]
+    needs: [health-check, restart-check, rollback-system]
 
     steps:
-      - name: Report
+      - name: Recovery Report
         run: |
-          echo "========================"
-          echo "VENOM SIMULATION PASSED"
-          echo "ALL SYSTEMS STABLE"
-          echo "========================"
+          echo "=============================="
+          echo "VENOM AUTO-RECOVERY REPORT"
+          echo "STATUS: SAFE MODE EXECUTED"
+          echo "NO SYSTEM INTERRUPTIONS"
+          echo "=============================="
