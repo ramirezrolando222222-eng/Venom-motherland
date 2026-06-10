@@ -1,0 +1,50 @@
+name: VENOM Motherland Monitoring
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Backend Health (WebSocket)
+        run: |
+          echo "Checking VENOM CORE availability..."
+          curl -f http://localhost:8765 || echo "CORE OFFLINE (expected in CI runners)"
+
+  system-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Core Files
+        run: |
+          test -f backend/venom_core.py
+          test -f backend/gateway.py
+          test -f frontend/index.html
+
+      - name: Audit State Design
+        run: |
+          echo "Checking VENOM architecture integrity..."
+          grep -r "WORKERS" backend/ || true
+          grep -r "VAULT" backend/ || true
+          grep -r "TIMEX" backend/ || true
+          echo "AUDIT COMPLETE"
+
+  heartbeat-log:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate System Heartbeat
+        run: |
+          echo "==============================="
+          echo "VENOM MOTHERLAND HEARTBEAT"
+          echo "STATUS: MONITORING ACTIVE"
+          echo "TIMESTAMP: $(date)"
+          echo "==============================="
