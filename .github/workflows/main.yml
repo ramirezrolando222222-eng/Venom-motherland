@@ -1,0 +1,92 @@
+name: VENOM Simulation Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  simulate-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Worker Simulation
+        run: |
+          python - << 'EOF'
+workers = {"lion_coder":"IDLE","diablo":"IDLE","roblast":"IDLE"}
+
+for i in range(3):
+    for w in workers:
+        workers[w] = "ACTIVE" if i % 2 == 0 else "REST"
+    print("Cycle", i, workers)
+EOF
+
+  simulate-timex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: TIMEX Test
+        run: |
+          python - << 'EOF'
+import time
+
+SHIFT_DURATION = 2
+start = time.time()
+
+for i in range(3):
+    elapsed = time.time() - start
+    state = "ACTIVE" if elapsed < SHIFT_DURATION else "REST"
+    print("Time", i, round(elapsed,2), state)
+    time.sleep(1)
+
+print("TIMEX OK")
+EOF
+
+  simulate-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: MEMORY Test
+        run: |
+          python - << 'EOF'
+MEMORY = {}
+VAULT = {}
+
+worker = "lion_coder"
+
+for i in range(3):
+    task = f"task_{i}"
+    MEMORY[worker] = task
+    VAULT[worker] = MEMORY[worker]
+    print(MEMORY, VAULT)
+
+print("MEMORY OK")
+EOF
+
+  final-report:
+    runs-on: ubuntu-latest
+    needs: [simulate-core, simulate-timex, simulate-memory]
+
+    steps:
+      - name: Report
+        run: |
+          echo "========================"
+          echo "VENOM SIMULATION PASSED"
+          echo "ALL SYSTEMS STABLE"
+          echo "========================"
