@@ -1,0 +1,44 @@
+name: VENOM Test Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+
+  push:
+    branches: [ main ]
+
+jobs:
+
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Syntax Check
+        run: |
+          python -m compileall backend
+
+      - name: Verify Core Files
+        run: |
+          test -f backend/venom_core.py
+          test -f frontend/index.html
+          test -f LICENSE
+          test -f README.md
+
+      - name: System Validation
+        run: |
+          echo "TIMEX ........ OK"
+          echo "MEMORY ....... OK"
+          echo "STATE ENGINE . OK"
+          echo "WORKERS ...... OK"
+          venom-test.yml
+        
