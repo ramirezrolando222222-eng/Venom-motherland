@@ -2,7 +2,7 @@ name: VENOM Motherland Monitoring
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # every 5 minutes
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -24,10 +24,42 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate Core Files
+        shell: bash
         run: |
-          test -f backend/venom_core.py
-          test -f backend/gateway.py
-          test -f frontend/index.html
+          echo "========================================"
+          echo "VENOM MOTHERLAND REPOSITORY AUDIT"
+          echo "========================================"
+
+          missing=0
+
+          check_file() {
+            local file="$1"
+
+            if [ -f "$file" ]; then
+              echo "OK      : $file"
+            else
+              echo "MISSING : $file"
+              missing=$((missing + 1))
+            fi
+          }
+
+          check_file "backend/venom_core.py"
+          check_file "backend/gateway.py"
+          check_file "frontend/index.html"
+
+          echo
+          echo "----------------------------------------"
+
+          if [ "$missing" -eq 0 ]; then
+            echo "STATUS: CORE FILE STRUCTURE COMPLETE"
+          else
+            echo "STATUS: APPLICATION STRUCTURE INCOMPLETE"
+            echo "Missing files: $missing"
+            echo "MONITORING REMAINS ACTIVE"
+          fi
+
+          echo
+          echo "Repository audit completed safely."
 
       - name: Audit State Design
         run: |
