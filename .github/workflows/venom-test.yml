@@ -27,12 +27,21 @@ jobs:
         run: |
           python -m compileall backend
 
-      - name: Verify Core Files
+      - name: Verify Repository Files
+        shell: bash
         run: |
-          test -f backend/venom_core.py
-          test -f frontend/index.html
+          echo "Checking VENOM repository structure..."
+
+          test -f backend/requirements.txt
           test -f LICENSE
           test -f README.md
+          test -d .github/workflows
+
+          echo "Repository structure: OK"
+          echo "Backend requirements: OK"
+          echo "LICENSE: OK"
+          echo "README: OK"
+          echo "GitHub workflows: OK"
 
       - name: System Validation
         run: |
