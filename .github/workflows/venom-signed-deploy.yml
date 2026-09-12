@@ -1,4 +1,4 @@
-7name: VENOM Signed Deployment
+name: VENOM Signed Deployment
 
 on:
   push:
@@ -11,13 +11,18 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate Structure
         run: |
-          test -f backend/venom_core.py
-          test -f frontend/index.html
-          test -f docker/docker-compose.yml
+          test -f backend/validate_systems.py
+          test -f backend/requirements.txt
+          test -f LICENSE
+          test -f README.md
+
+      - name: Validate VENOM Subsystems
+        run: |
+          python backend/validate_systems.py
 
       - name: Generate Build Hash
         run: |
@@ -36,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create Signature File
         run: |
@@ -52,43 +57,45 @@ jobs:
             signature.txt
             signature.sig
 
-  dep
-deploy:
-  runs-on: ubuntu-latest
-  needs: [verify-build, sign-build]
+  # Deployment intentionally disabled during workflow validation.
+  # The repository currently does not contain the Docker deployment files
+  # referenced by the legacy deployment configuration.
+  deploy:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    needs: [verify-build, sign-build]
 
-  steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-    - name: Download Signature Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: venom-signature
+      - name: Download Signature Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: venom-signature
 
-    - name: Verify Signature Exists
-      run: |
-        ls -la
-        test -f signature.txt
-        echo "SIGNATURE VERIFIED"
+      - name: Verify Signature Exists
+        run: |
+          ls -la
+          test -f signature.txt
+          echo "SIGNATURE VERIFIED"
 
-    - name: Deploy via SSH (Only Signed Builds)
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VENOM_HOST }}
-        username: ${{ secrets.VENOM_USER }}
-        key: ${{ secrets.VENOM_SSH_KEY }}
-        script: |
-          set -e
+      - name: Deploy via SSH (Only Signed Builds)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VENOM_HOST }}
+          username: ${{ secrets.VENOM_USER }}
+          key: ${{ secrets.VENOM_SSH_KEY }}
+          script: |
+            set -e
 
-          cd ~/venom-motherland
+            cd ~/venom-motherland
 
-          echo "DEPLOYING VENOM..."
+            echo "DEPLOYING VENOM..."
 
-          git pull origin main
+            git pull origin main
 
-          docker compose down || true
-          docker compose up -d --build
+            docker compose down || true
+            docker compose up -d --build
 
-          echo "VENOM DEPLOY COMPLETE"
-
+            echo "VENOM DEPLOY COMPLETE"
