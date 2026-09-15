@@ -40,6 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: restart-check
     steps:
+      - name: Checkout Repository Source
+        uses: actions/checkout@v4
+
       - name: Rollback Check
         run: |
           echo "Checking last stable state..."
@@ -53,7 +56,7 @@ jobs:
               docker compose down || true
               docker compose up -d --build || true
             else
-              echo "Docker compose binary or environment unavailable on cloud host - skipping container generation step."
+              echo "Docker compose environment unavailable on cloud host - skipping container generation step."
             fi
             echo "ROLLBACK COMPLETE"
           else
