@@ -55,8 +55,8 @@ jobs:
             git fetch --tags
             git checkout $LAST_STABLE
             if command -v docker-compose &> /dev/null || docker compose version &> /dev/null; then
-              docker compose down || true
-              docker compose up -d --build || true
+              docker compose -f docker/docker-compose.yml down || true
+              docker compose -f docker/docker-compose.yml up -d --build || true
             else
               echo "Docker compose environment unavailable on cloud host - skipping container generation step."
             fi
